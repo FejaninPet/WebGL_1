@@ -13,7 +13,7 @@ var FSHADER_SOURCE =
     '}\n';
 
 // Угол поворота (град/сек)
-var ANGLE_STEP = 10.0;
+var ANGLE_STEP = 20.0;
 
 // создаем функцию main
 function main() {
@@ -46,7 +46,6 @@ function main() {
     console.log(modelMatrix);
 
     // Cоздать матрицу вращения и перемещения в переменной ModelMatrix
-    console.log(modelMatrix);
     modelMatrix.setRotate(ANGLE_STEP, 0, 0, 1);
 
     // Указать цвет для очистки области рисования <canvas>
@@ -79,7 +78,7 @@ function main() {
 function initVertexBuffers(gl) {
     // создать массив с координатами
     var vertices = new Float32Array([
-        0.0, 0.5, -0.5, -0.5, 0.5, -0.5
+        0.0, 0.2, -0.2, -0.2, 0.2, -0.2
     ])
 
     // создать переменную n
@@ -118,7 +117,10 @@ function draw(gl,n, currentAngle, modelMatrix, u_ModelMatrix) {
     // Определить матрицу вращения
     modelMatrix.setRotate(currentAngle, 0, 0, 1);
 
-    // Передать матрицу в вершинный шейдер
+    // смещение
+    modelMatrix.translate(0.2 + currentAngle / 720, 0, 0);
+
+    // Передать матрицу в вершинный шейдер (вращение)
     gl.uniformMatrix4fv(u_ModelMatrix, false, modelMatrix.elements);
 
     // Очистить <canvas>
@@ -140,5 +142,6 @@ function animate(angle) {
 
     // Изменить текущий угол поворота (в соответствии с прошедшим временем)
     var newAngle = angle + (ANGLE_STEP * elapsed) / 1000.0;
+    console.log(newAngle);
     return newAngle %= 360;
 }
