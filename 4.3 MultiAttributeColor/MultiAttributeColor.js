@@ -50,7 +50,9 @@ function main() {
     gl.clear(gl.COLOR_BUFFER_BIT);
 
     // Нарисовать три точки
-    gl.drawArrays(gl.POINTS, 0, n)
+    // gl.drawArrays(gl.POINTS, 0, n)
+    // Нарисовать треугольник
+    gl.drawArrays(gl.TRIANGLES, 0, n)
 }
 
 // функция инициализации буфера
