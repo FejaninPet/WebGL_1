@@ -10,13 +10,16 @@ var VSHADER_SOURCE =
 
 // Фрагментный шейдер
 var FSHADER_SOURCE =
-  // '#ifdef GL_ES\n' +
+  '#ifdef GL_ES\n' +
   'precision mediump float;\n' +
-  // '#endif\n' +
-  'uniform sampler2D u_Sampler;\n' +
+  '#endif\n' +
+  'uniform sampler2D u_Sampler0;\n' +
+  'uniform sampler2D u_Sampler1;\n' +
   'varying vec2 v_TexCoord;\n' +
   'void main() {\n' +
-  '  gl_FragColor = texture2D(u_Sampler, v_TexCoord);\n' +
+  '  vec4 color0 = texture2D(u_Sampler0, v_TexCoord);\n' +
+  '  vec4 color1 = texture2D(u_Sampler1, v_TexCoord);\n' +
+  '  gl_FragColor = color0 * color1;\n' +
   '}\n';
 
   // Основная функция
@@ -60,19 +63,11 @@ function main() {
 // функция инициализации буфера
 function initVertexBuffers(gl) {
   // создать массив с координатами точек и текстур
-  /*
   var verticesTexCoords = new Float32Array([
     -0.5,  0.5,   0.0, 1.0,
     -0.5, -0.5,   0.0, 0.0,
      0.5,  0.5,   1.0, 1.0,
      0.5, -0.5,   1.0, 0.0,
-  ]);
-  */
-  var verticesTexCoords = new Float32Array([
-    -0.5,  0.5,   -0.3, 1.7,
-    -0.5, -0.5,   -0.3, -0.2,
-     0.5,  0.5,   1.7, 1.7,
-     0.5, -0.5,   1.7, -0.2,
   ]);
 
   // создать переменную n
@@ -125,37 +120,70 @@ function initVertexBuffers(gl) {
 
 function initTextures(gl, n) {
   // Создать объект текстуры
-  var texture = gl.createTexture();
-  if (!texture) {
+  var texture0 = gl.createTexture();
+  if (!texture0) {
     console.log('Ошибка создания объекта текстуры.');
     return false;
   }
 
-  // Предоставить доступ к переменной u_Sampler
-  var u_Sampler = gl.getUniformLocation(gl.program, 'u_Sampler');
-  if (!u_Sampler) {
-    console.log('Ошибка получения доступа к переменной u_Sampler');
+  var texture1 = gl.createTexture();
+  if (!texture1) {
+    console.log('Ошибка создания объекта текстуры.');
     return false;
   }
 
-  // Создать объект изображения
-  var image = new Image();
-  if (!image) {
+  // Предоставить доступ к переменной u_Sampler0
+  var u_Sampler0 = gl.getUniformLocation(gl.program, 'u_Sampler0');
+  if (!u_Sampler0) {
+    console.log('Ошибка получения доступа к переменной u_Sampler0');
+    return false;
+  }
+
+  // Предоставить доступ к переменной u_Sampler1
+  var u_Sampler1 = gl.getUniformLocation(gl.program, 'u_Sampler1');
+  if (!u_Sampler1) {
+    console.log('Ошибка получения доступа к переменной u_Sampler1');
+    return false;
+  }
+
+  // Создать объекты изображения
+  var image0 = new Image();
+  if (!image0) {
     console.log('Ошибка создания объекта изображения.');
     return false;
   }
+
+  var image1 = new Image();
+  if (!image1) {
+    console.log('Ошибка создания объекта изображения.');
+    return false;
+  }
+
   // Зарегистрировать обработчик, вызываемый послезагрузки изображения
-  image.onload = function(){ loadTexture(gl, n, texture, u_Sampler, image); };
+  image0.onload = function(){ loadTexture(gl, n, texture0, u_Sampler0, image0, 0); };
+  image1.onload = function(){ loadTexture(gl, n, texture1, u_Sampler1, image1, 1); };
+  
   // Сообщить браузеру откуда загрузить изображение
-  image.src = 'sky.jpg';
+  image0.src = 'sky.jpg';
+  image1.src = 'circle.gif';
 
   return true;
 }
 
-function loadTexture(gl, n, texture, u_Sampler, image) {
+// переменные определяющие готовность текстурных слотов к использованию
+var g_texUnit0 = false, g_texUnit1 = false
+
+function loadTexture(gl, n, texture, u_Sampler, image, texUnit) {
   gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1); // Повернуть ось Y изображения
-  // Выбрать текстурный слот 0
-  gl.activeTexture(gl.TEXTURE0);
+  // активировать указанный текстурный слой
+  if (texUnit == 0) {
+    gl.activeTexture(gl.TEXTURE0);
+    g_texUnit0 = true;
+  } else {
+    gl.activeTexture(gl.TEXTURE1);
+    g_texUnit1 = true;
+  }
+  
   // Указать тип объекта текстуры
   gl.bindTexture(gl.TEXTURE_2D, texture);
 
@@ -168,9 +196,11 @@ function loadTexture(gl, n, texture, u_Sampler, image) {
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, image);
   
   // Определить указатель на текстурный слот 0
-  gl.uniform1i(u_Sampler, 0);
+  gl.uniform1i(u_Sampler, texUnit);
   
   gl.clear(gl.COLOR_BUFFER_BIT);   // Очистить <canvas>
 
-  gl.drawArrays(gl.TRIANGLE_STRIP, 0, n); // Нарисовать прямоугольник
+  if (g_texUnit0 && g_texUnit1) {
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, n); // Нарисовать прямоугольник
+  }
 }
