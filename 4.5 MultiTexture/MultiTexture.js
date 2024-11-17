@@ -22,7 +22,8 @@ var FSHADER_SOURCE =
   '  gl_FragColor = color0 * color1;\n' +
   '}\n';
 
-  // Основная функция
+
+// Основная функция
 function main() {
   // Получить ссылку на canvas
   var canvas = document.getElementById('webgl');
