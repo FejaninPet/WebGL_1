@@ -2,10 +2,10 @@
 var VSHADER_SOURCE =
   'attribute vec4 a_Position;\n' +
   'attribute vec4 a_Color;\n' +
-  'uniform mat4 u_ViewMatrix;\n' +
+  'uniform mat4 u_ModelViewMatrix;\n' +
   'varying vec4 v_Color;\n' +
   'void main() {\n' +
-  '  gl_Position = u_ViewMatrix * a_Position;\n' +
+  '  gl_Position = u_ModelViewMatrix * a_Position;\n' +
   '  v_Color = a_Color;\n' +
   '}\n';
 
@@ -21,7 +21,7 @@ var FSHADER_SOURCE =
 
 // Основная функция
 function main() {
-  // Получить ссылку на canvas
+  // Получить доступ к элементу <canvas>
   var canvas = document.getElementById('webgl');
   if (!canvas)  {
     console.log('Используйте браузер, поддерживающий canvas.');
@@ -50,58 +50,63 @@ function main() {
   // Указать цвет для очистки области рисования <canvas>
   gl.clearColor(0.0, 0.0, 0.0, 1.0);
 
-  // Получить ссылку на u_ViewMatrix
-  var u_ViewMatrix = gl.getUniformLocation(gl.program, 'u_ViewMatrix');
-  if (!u_ViewMatrix) { 
-    console.log('Не удалось получить ссылка на u_ViewMatrix');
+  // Получить ссылку на u_ModelViewMatrix
+  var u_ModelViewMatrix = gl.getUniformLocation(gl.program, 'u_ModelViewMatrix');
+  if(!u_ModelViewMatrix) { 
+    console.log('Не удалось получить ссылка на u_ModelViewMatrix');
     return;
   }
 
-  // Установите матрицу, которая будет использоваться для настройки вида камеры
+  // Определить матрицу отображения, которая будет использоваться для настройки вида камеры
   var viewMatrix = new Matrix4();
-  // координаты точки наблюдения (0.2, 0.25, 0.25)
-  // координаты точки направления взгляда (0, 0, 0)
-  // координаты направления вверх (0, 1, 0)
-  viewMatrix.setLookAt(0.2 , 0.25, 0.25, 0, 0, 0, 0, 1, 0);
+  viewMatrix.setLookAt(0.20, 0.25, 0.25, 0, 0, 0, 0, 1, 0);
 
-  // Установите матрицу просмотра
-  gl.uniformMatrix4fv(u_ViewMatrix, false, viewMatrix.elements);
+  // расчитать матрицу вращения
+  var modelMatrix = new Matrix4();
+  modelMatrix.setRotate(-10, 0, 0, 1);
+
+  // Умножение матрицы отображения на матрицу вращение
+  // БОЛЕЕ ЕФФЕКТИВНЫЙ способ, нежели производить данное вычисление для каждой точки в
+  // вершинном шейдере
+  var modelViewMatrix = viewMatrix.multiply(modelMatrix);
+
+  /// Установить матрицу вращения и отображения
+  gl.uniformMatrix4fv(u_ModelViewMatrix, false, modelViewMatrix.elements);
 
   // Очистить <canvas>
   gl.clear(gl.COLOR_BUFFER_BIT);
 
-  // Нарисовать треугольники
+  // Нарисоать треугольники
   gl.drawArrays(gl.TRIANGLES, 0, n);
 }
 
 function initVertexBuffers(gl) {
-  // Поиграть с числами!!!
   var verticesColors = new Float32Array([
     // Координаты вершин и цвет (RGBA)
     //X    Y      Z     R     G     B
-     0.0,  0.5,  -0.4,  0.4,  1.0,  0.4, // Тот, что сзади, зеленый
+     0.0,  0.5,  -0.4,  0.4,  1.0,  0.4, // Тот, что позади, зеленый
     -0.5, -0.5,  -0.4,  0.4,  1.0,  0.4,
      0.5, -0.5,  -0.4,  1.0,  0.4,  0.4, 
    
      0.5,  0.4,  -0.2,  1.0,  0.4,  0.4, // Тот, что посередине, желтый
-     -0.5,  0.4,  -0.2,  1.0,  1.0,  0.4,
+    -0.5,  0.4,  -0.2,  1.0,  1.0,  0.4,
      0.0, -0.6,  -0.2,  1.0,  1.0,  0.4, 
 
-     0.0,  0.5,   0.0,  0.4,  0.4,  1.0,  // Тот, что спереди, синий 
-     -0.5, -0.5,   0.0,  0.4,  0.4,  1.0,
+     0.0,  0.5,   0.0,  0.4,  0.4,  1.0, // Тот, что спереди, синий 
+    -0.5, -0.5,   0.0,  0.4,  0.4,  1.0,
      0.5, -0.5,   0.0,  1.0,  0.4,  0.4, 
   ]);
   var n = 9;
 
   // Создать буфферный объект
-  var vertexColorbuffer = gl.createBuffer();  
-  if (!vertexColorbuffer) {
-    console.log('Ошибка создания буфферного объекта');
+  var vertexColorBuffer = gl.createBuffer();  
+  if (!vertexColorBuffer) {
+    console.log('Failed to create the buffer object');
     return -1;
   }
 
   // Записать координаты и цвет в буфферный объект
-  gl.bindBuffer(gl.ARRAY_BUFFER, vertexColorbuffer);
+  gl.bindBuffer(gl.ARRAY_BUFFER, vertexColorBuffer);
   gl.bufferData(gl.ARRAY_BUFFER, verticesColors, gl.STATIC_DRAW);
 
   var FSIZE = verticesColors.BYTES_PER_ELEMENT;
@@ -113,7 +118,6 @@ function initVertexBuffers(gl) {
   }
   gl.vertexAttribPointer(a_Position, 3, gl.FLOAT, false, FSIZE * 6, 0);
   gl.enableVertexAttribArray(a_Position);
-
   // Получить ссылку на  a_Color
   var a_Color = gl.getAttribLocation(gl.program, 'a_Color');
   if(a_Color < 0) {
